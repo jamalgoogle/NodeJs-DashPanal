@@ -1,0 +1,76 @@
+﻿### Variables
+@baseUrl = http://localhost:3500
+@accessToken = {{login.response.body.accessToken}}
+
+### 1. Root / Frontend Page
+GET {{baseUrl}}/
+
+### 2. Register New User
+# @name register
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+    "user": "testadmin",
+    "pwd": "Password123!"
+}
+
+### 3. Login User (Obtains Access Token + sets Refresh Token Cookie)
+# @name login
+POST {{baseUrl}}/auth
+Content-Type: application/json
+
+{
+    "user": "testadmin",
+    "pwd": "Password123!"
+}
+
+### 4. Refresh Token (Uses Cookie)
+# @name refresh
+GET {{baseUrl}}/refresh
+
+### 5. Get All Employees (Protected - Requires Access Token)
+GET {{baseUrl}}/employees
+Authorization: Bearer {{accessToken}}
+
+### 6. Create New Employee (Requires Editor or Admin role)
+# @name createEmployee
+POST {{baseUrl}}/employees
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+    "firstname": "Jane",
+    "lastname": "Smith"
+}
+
+### 7. Update Employee
+PUT {{baseUrl}}/employees
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+    "id": "{{createEmployee.response.body._id}}",
+    "firstname": "Janet",
+    "lastname": "Smith-Johnson"
+}
+
+### 8. Get Single Employee by ID
+GET {{baseUrl}}/employees/{{createEmployee.response.body._id}}
+Authorization: Bearer {{accessToken}}
+
+### 9. Delete Employee (Requires Admin role)
+DELETE {{baseUrl}}/employees
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+    "id": "{{createEmployee.response.body._id}}"
+}
+
+### 10. Get All Registered Users (Admin only)
+GET {{baseUrl}}/users
+Authorization: Bearer {{accessToken}}
+
+### 11. Logout (Clears Refresh Token Cookie)
+GET {{baseUrl}}/logout

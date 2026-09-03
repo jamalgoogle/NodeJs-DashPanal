@@ -13,6 +13,7 @@ const mongoose = require('mongoose');
 const connectDB = require('./config/dbConn');
 const PORT = process.env.PORT || 3500;
 
+
 // Connect to MongoDB
 connectDB();
 
@@ -38,16 +39,26 @@ app.use(cookieParser());
 //serve static files
 app.use('/', express.static(path.join(__dirname, '/public')));
 
+// Middleware to check database connection status for API routes
+const checkDB = (req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({
+            message: 'MongoDB is not connected. Please start your local MongoDB service (e.g. net start MongoDB) or set a valid DATABASE_URI in your .env file.'
+        });
+    }
+    next();
+};
+
 // routes
 app.use('/', require('./routes/root'));
-app.use('/register', require('./routes/register'));
-app.use('/auth', require('./routes/auth'));
-app.use('/refresh', require('./routes/refresh'));
-app.use('/logout', require('./routes/logout'));
+app.use('/register', checkDB, require('./routes/register'));
+app.use('/auth', checkDB, require('./routes/auth'));
+app.use('/refresh', checkDB, require('./routes/refresh'));
+app.use('/logout', checkDB, require('./routes/logout'));
 
 app.use(verifyJWT);
-app.use('/employees', require('./routes/api/employees'));
-app.use('/users', require('./routes/api/users'));
+app.use('/employees', checkDB, require('./routes/api/employees'));
+app.use('/users', checkDB, require('./routes/api/users'));
 
 app.all('*', (req, res) => {
     res.status(404);    
@@ -62,12 +73,12 @@ app.all('*', (req, res) => {
 
 app.use(errorHandler);
 
-mongoose.connection.once('open', () => {
-    console.log('Connected to MongoDB');
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-});
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`🌐 Frontend accessible at http://localhost:${PORT}`);
+    });
+}
 
-
-
-
+module.exports = app;
 

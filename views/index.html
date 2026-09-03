@@ -1,16 +1,404 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Index</title>
-    <link rel="stylesheet" href="css/style.css" />
+    <title>NexusAuth &bull; Node.js Architecture Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22 width=%2232%22 height=%2232%22><text y=%2226%22 font-size=%2226%22>🛡️</text></svg>">
 </head>
 
 <body>
-    <h1>Index</h1>
+    <!-- Top Navigation -->
+    <header class="app-header">
+        <div class="nav-container">
+            <a href="#" class="brand" onclick="app.switchTab('employees'); return false;">
+                <div class="brand-icon">⚡</div>
+                <div class="brand-title">Nexus<span>Auth</span></div>
+            </a>
+
+            <ul class="nav-links">
+                <li class="nav-item">
+                    <button id="nav-btn-employees" class="active" onclick="app.switchTab('employees')">
+                        👥 Employees
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button id="nav-btn-admin" onclick="app.switchTab('admin')">
+                        👑 Admin Panel
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button id="nav-btn-inspector" onclick="app.switchTab('inspector')">
+                        🔍 Token & API Inspector
+                    </button>
+                </li>
+            </ul>
+
+            <div class="nav-auth-profile">
+                <div id="user-status-container" class="user-status-pill">
+                    <div id="user-avatar" class="user-avatar-circle">?</div>
+                    <span id="nav-username" style="font-weight:600;">Guest</span>
+                    <span id="nav-role-badge" class="badge badge-guest">Unauthenticated</span>
+                </div>
+                <button id="nav-auth-action-btn" class="btn btn-primary btn-sm" onclick="app.handleAuthButtonClick()">
+                    Login
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+        <!-- VIEW 1: AUTHENTICATION (Login & Register) -->
+        <section id="view-auth" class="tab-pane">
+            <div class="auth-wrapper">
+                <div class="auth-card">
+                    <div class="auth-nav-tabs">
+                        <button id="tab-btn-login" class="auth-tab-btn active" onclick="app.switchAuthSubTab('login')">
+                            Sign In
+                        </button>
+                        <button id="tab-btn-register" class="auth-tab-btn" onclick="app.switchAuthSubTab('register')">
+                            Create Account
+                        </button>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form id="form-login" onsubmit="app.handleLogin(event)">
+                        <div class="form-group">
+                            <label class="form-label" for="login-username">Username</label>
+                            <input type="text" id="login-username" class="form-control" placeholder="Enter your username" required autocomplete="username" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="login-password">Password</label>
+                            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password" />
+                        </div>
+                        <button type="submit" id="btn-login-submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+                            Sign In
+                        </button>
+                    </form>
+
+                    <!-- Register Form -->
+                    <form id="form-register" style="display: none;" onsubmit="app.handleRegister(event)">
+                        <div class="form-group">
+                            <label class="form-label" for="reg-username">Username</label>
+                            <input type="text" id="reg-username" class="form-control" placeholder="Choose a username" required autocomplete="username" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="reg-password">Password</label>
+                            <input type="password" id="reg-password" class="form-control" placeholder="Choose a strong password" required autocomplete="new-password" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="reg-password-confirm">Confirm Password</label>
+                            <input type="password" id="reg-password-confirm" class="form-control" placeholder="Re-enter password" required autocomplete="new-password" />
+                        </div>
+                        <button type="submit" id="btn-register-submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+                            Register Account
+                        </button>
+                    </form>
+
+                    <!-- Helper hints -->
+                    <div class="auth-helper-pill">
+                        <strong>Architecture Note:</strong> New users receive default <code>User (2001)</code> role. To test <code>Editor (1984)</code> or <code>Admin (5150)</code> endpoints, roles can be assigned in MongoDB or inspected in the JWT Inspector.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: EMPLOYEE MANAGEMENT DASHBOARD -->
+        <section id="view-employees" class="tab-pane active">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon primary">👥</div>
+                    <div>
+                        <div class="stat-value" id="stat-employee-count">0</div>
+                        <div class="stat-label">Total Employees</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon accent">🛡️</div>
+                    <div>
+                        <div class="stat-value" id="stat-user-role" style="font-size: 1.1rem;">Guest</div>
+                        <div class="stat-label">Active Permissions</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon success">⚡</div>
+                    <div>
+                        <div class="stat-value" id="stat-session-status" style="font-size: 1.1rem; color: var(--success);">Online</div>
+                        <div class="stat-label">JWT Token Status</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employee List Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Employee Directory</div>
+                        <div class="card-subtitle">Manage company staff records with role-based access control</div>
+                    </div>
+                    <div>
+                        <button id="btn-open-add-employee" class="btn btn-primary btn-sm" onclick="app.openAddEmployeeModal()">
+                            + Add Employee
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search & Filter Toolbar -->
+                <div class="toolbar">
+                    <div class="search-input-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="employee-search" class="form-control" placeholder="Search by first or last name..." oninput="app.filterEmployees()" />
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary btn-sm" onclick="app.loadEmployees()">
+                            🔄 Refresh Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Employees Table -->
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th># ID</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employees-table-body">
+                            <tr>
+                                <td colspan="4" class="empty-state">
+                                    <div class="empty-icon">⏳</div>
+                                    <div>Loading employees...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: ADMIN PANEL (USER MANAGEMENT) -->
+        <section id="view-admin" class="tab-pane">
+            <div id="admin-restricted-view" class="permission-denied-box" style="display: none;">
+                <div class="permission-denied-icon">🔒</div>
+                <h2>Admin Access Required (Role: 5150)</h2>
+                <p style="color: var(--text-muted); margin-top: 0.5rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+                    You are currently logged in with insufficient permissions to view or manage registered users. Sign in with an account having the <code>Admin (5150)</code> role.
+                </p>
+                <button class="btn btn-secondary" style="margin-top: 1.5rem;" onclick="app.switchTab('inspector')">
+                    Inspect Current JWT Roles
+                </button>
+            </div>
+
+            <div id="admin-content-view" class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">👑 Registered Users & Roles</div>
+                        <div class="card-subtitle">Admin-only view for user governance and permission verification</div>
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary btn-sm" onclick="app.loadUsers()">
+                            🔄 Refresh Users
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Username</th>
+                                <th>Roles</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <tr>
+                                <td colspan="4" class="empty-state">
+                                    <div class="empty-icon">⏳</div>
+                                    <div>Loading registered users...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 4: TOKEN & API INSPECTOR -->
+        <section id="view-inspector" class="tab-pane">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">🔍 Live JWT & Session Inspector</div>
+                        <div class="card-subtitle">Real-time inspection of Access Token in memory, claims, and automatic refresh status</div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary btn-sm" onclick="app.testSilentRefresh()">
+                            🔄 Silent Token Refresh
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="app.testProtectedCall()">
+                            📡 Test Protected Call
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Token Countdown Bar -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted);">
+                        <span>Access Token Expiration Countdown:</span>
+                        <strong id="token-timer-text" style="color: var(--accent);">No Active Token</strong>
+                    </div>
+                    <div class="token-timer-bar">
+                        <div id="token-timer-progress" class="token-timer-progress" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- Access Token String -->
+                <div style="margin-top: 1rem;">
+                    <label class="form-label">Current Access Token (Sent as <code>Authorization: Bearer &lt;token&gt;</code>):</label>
+                    <div class="token-container">
+                        <button class="btn btn-secondary btn-sm token-copy-btn" onclick="app.copyToken()">📋 Copy</button>
+                        <code id="inspector-raw-token">Unauthenticated (No token stored in memory)</code>
+                    </div>
+                </div>
+
+                <!-- Decoded Claims -->
+                <div class="claims-grid">
+                    <div class="claim-box">
+                        <div class="claim-label">Authenticated Username</div>
+                        <div class="claim-value" id="claim-username">-</div>
+                    </div>
+                    <div class="claim-box">
+                        <div class="claim-label">Assigned Roles</div>
+                        <div class="claim-value" id="claim-roles">-</div>
+                    </div>
+                    <div class="claim-box">
+                        <div class="claim-label">Issued At (iat)</div>
+                        <div class="claim-value" id="claim-iat">-</div>
+                    </div>
+                    <div class="claim-box">
+                        <div class="claim-label">Expires At (exp)</div>
+                        <div class="claim-value" id="claim-exp">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Architecture Reference Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">🏛️ Architecture & Security Model</div>
+                </div>
+                <div style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.6;">
+                    <p>This full-stack application implements a modern dual-token authentication architecture:</p>
+                    <ul style="margin: 0.75rem 0 0.75rem 1.5rem;">
+                        <li><strong>Short-lived Access Token:</strong> Stored securely in JavaScript memory (never in localStorage to prevent XSS). Sent in HTTP <code>Authorization: Bearer</code> headers.</li>
+                        <li><strong>Long-lived Refresh Token:</strong> Stored in an <code>HttpOnly, SameSite</code> Cookie. Accessible only by the browser to request new Access Tokens via <code>GET /refresh</code>.</li>
+                        <li><strong>Silent Auto-Refresh:</strong> The API client automatically catches <code>401/403</code> expired token responses, issues a background refresh, and replays the original request transparently!</li>
+                        <li><strong>Role-Based Access Control:</strong> Enforced at the middleware level (<code>verifyRoles</code>) for <code>User (2001)</code>, <code>Editor (1984)</code>, and <code>Admin (5150)</code>.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: ADD EMPLOYEE -->
+    <div id="modal-add-employee" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">Add New Employee</div>
+                <button class="modal-close" onclick="app.closeModals()">&times;</button>
+            </div>
+            <form onsubmit="app.handleAddEmployeeSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="add-firstname">First Name</label>
+                        <input type="text" id="add-firstname" class="form-control" placeholder="e.g. John" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="add-lastname">Last Name</label>
+                        <input type="text" id="add-lastname" class="form-control" placeholder="e.g. Doe" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="app.closeModals()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT EMPLOYEE -->
+    <div id="modal-edit-employee" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">Edit Employee</div>
+                <button class="modal-close" onclick="app.closeModals()">&times;</button>
+            </div>
+            <form onsubmit="app.handleEditEmployeeSubmit(event)">
+                <input type="hidden" id="edit-employee-id" />
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Employee ID</label>
+                        <input type="text" id="edit-employee-id-display" class="form-control" disabled />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-firstname">First Name</label>
+                        <input type="text" id="edit-firstname" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-lastname">Last Name</label>
+                        <input type="text" id="edit-lastname" class="form-control" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="app.closeModals()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: VIEW EMPLOYEE -->
+    <div id="modal-view-employee" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">Employee Details</div>
+                <button class="modal-close" onclick="app.closeModals()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">ID</label>
+                    <div id="view-emp-id" class="id-tag" style="display:inline-block; font-size:1rem;">-</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <div id="view-emp-fullname" style="font-size: 1.25rem; font-weight: 700;">-</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="app.closeModals()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
 </body>
 
 </html>
