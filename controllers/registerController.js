@@ -2,7 +2,8 @@ const User = require('../model/User');
 const bcrypt = require('bcrypt');
 
 const handleNewUser = async (req, res) => {
-    const { user, pwd } = req.body;
+    // 1. استخراج roles بجانب user و pwd من جسم الطلب
+    const { user, pwd, roles } = req.body;
     if (!user || !pwd) return res.status(400).json({ 'message': 'Username and password are required.' });
 
     try {
@@ -13,10 +14,14 @@ const handleNewUser = async (req, res) => {
         // encrypt the password
         const hashedPwd = await bcrypt.hash(pwd, 10);
 
+        // 2. إذا تم إرسال roles استخدمها، وإلا قم بضبط القيمة الافتراضية كـ User (2001)
+        const userRoles = roles ? roles : { "User": 2001 };
+
         // create and store the new user
         const result = await User.create({
             "username": user,
-            "password": hashedPwd
+            "password": hashedPwd,
+            "roles": userRoles
         });
 
         res.status(201).json({ 'success': `New user ${user} created!` });
